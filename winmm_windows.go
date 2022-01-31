@@ -35,6 +35,8 @@ var (
 	procWaveOutRestart         = winmm.NewProc("waveOutRestart")
 	procWaveOutUnprepareHeader = winmm.NewProc("waveOutUnprepareHeader")
 	procWaveOutWrite           = winmm.NewProc("waveOutWrite")
+	procWaveOutGetDevCaps      = winmm.NewProc("waveOutGetDevCapsW")
+	procWaveOutGetNumDevs      = winmm.NewProc("waveOutGetNumDevs")
 )
 
 type wavehdr struct {
@@ -58,9 +60,21 @@ type waveformatex struct {
 	cbSize          uint16
 }
 
+type waveoutcaps struct {
+	wMid           uint16
+	wPid           uint16
+	vDriverVersion uint16
+	szPname        [32]uint16
+	dwFormats      uint32
+	wChannels      uint16
+	wReserver1     uint16
+	dwSupport      uint32
+}
+
 const (
 	waveFormatIEEEFloat = 3
 	whdrInqueue         = 16
+	waveMapper          = 0xffffffff
 )
 
 type mmresult uint
@@ -123,9 +137,8 @@ func (e *winmmError) Error() string {
 	return fmt.Sprintf("winmm error at %s", e.fname)
 }
 
-func waveOutOpen(f *waveformatex, callback uintptr) (uintptr, error) {
+func waveOutOpen(f *waveformatex, deviceId int, callback uintptr) (uintptr, error) {
 	const (
-		waveMapper       = 0xffffffff
 		callbackFunction = 0x30000
 	)
 	var w uintptr
@@ -133,7 +146,7 @@ func waveOutOpen(f *waveformatex, callback uintptr) (uintptr, error) {
 	if callback != 0 {
 		fdwOpen |= callbackFunction
 	}
-	r, _, e := procWaveOutOpen.Call(uintptr(unsafe.Pointer(&w)), waveMapper, uintptr(unsafe.Pointer(f)),
+	r, _, e := procWaveOutOpen.Call(uintptr(unsafe.Pointer(&w)), uintptr(deviceId), uintptr(unsafe.Pointer(f)),
 		callback, 0, fdwOpen)
 	runtime.KeepAlive(f)
 	if e.(windows.Errno) != 0 {
@@ -270,5 +283,37 @@ func waveOutWrite(hwo uintptr, pwh *wavehdr) error {
 			mmresult: mmresult(r),
 		}
 	}
+	return nil
+}
+
+func waveOutGetDevCaps(id int, pwc *waveoutcaps) error {
+	r, _, e := procWaveOutGetDevCaps.Call(uintptr(id), uintptr(unsafe.Pointer(pwc)), unsafe.Sizeof(waveoutcaps{}))
+	runtime.KeepAlive(pwc)
+	if e.(windows.Errno) != 0 {
+		return &winmmError{
+			fname: "waveOutGetDevCaps",
+			errno: e.(windows.Errno),
+		}
+	}
+	if mmresult(r) != mmsyserrNoerror {
+		return &winmmError{
+			fname:    "waveOutGetDevCaps",
+			mmresult: mmresult(r),
+		}
+	}
+	return nil
+}
+
+func waveOutGetNumDevs(units *int) error {
+	r, _, e := procWaveOutGetNumDevs.Call()
+	runtime.KeepAlive(units)
+	if e.(windows.Errno) != 0 {
+		return &winmmError{
+			fname: "waveOutGetNumDevs",
+			errno: e.(windows.Errno),
+		}
+
+	}
+	*units = int(r)
 	return nil
 }

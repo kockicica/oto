@@ -80,6 +80,10 @@ func newContext(sampleRate int, channelNum int, bitDepthInBytes int) (*context, 
 	return d, ready, nil
 }
 
+func newContextWithDevice(sampleRate int, channelNum int, bitDepthInBytes int, deviceId int) (*context, chan struct{}, error) {
+	return newContext(sampleRate, channelNum, bitDepthInBytes)
+}
+
 type player struct {
 	context *context
 	src     io.Reader

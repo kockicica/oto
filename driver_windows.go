@@ -84,6 +84,12 @@ type context struct {
 var theContext *context
 
 func newContext(sampleRate, channelNum, bitDepthInBytes int) (*context, chan struct{}, error) {
+
+	return newContextWithDevice(sampleRate, channelNum, bitDepthInBytes, waveMapper)
+
+}
+
+func newContextWithDevice(sampleRate, channelNum, bitDepthInBytes, deviceId int) (*context, chan struct{}, error) {
 	ready := make(chan struct{})
 	close(ready)
 
@@ -108,7 +114,7 @@ func newContext(sampleRate, channelNum, bitDepthInBytes int) (*context, chan str
 	}
 
 	// TOOD: What about using an event instead of a callback? PortAudio and other libraries do that.
-	w, err := waveOutOpen(f, waveOutOpenCallback)
+	w, err := waveOutOpen(f, deviceId, waveOutOpenCallback)
 	const elementNotFound = 1168
 	if e, ok := err.(*winmmError); ok && e.errno == elementNotFound {
 		// TODO: No device was found. Return the dummy device (#77).

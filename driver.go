@@ -92,6 +92,14 @@ func NewContext(sampleRate int, channelNum int, bitDepthInBytes int) (*Context, 
 	return &Context{context: ctx}, ready, nil
 }
 
+func NewContextWithDevice(sampleRate int, channelNum int, bitDepthInBytes int, deviceId int) (*Context, chan struct{}, error) {
+	ctx, ready, err := newContextWithDevice(sampleRate, channelNum, bitDepthInBytes, deviceId)
+	if err != nil {
+		return nil, nil, err
+	}
+	return &Context{context: ctx}, ready, nil
+}
+
 // Player is a PCM (pulse-code modulation) audio player.
 type Player interface {
 	// Pause pauses its playing.
@@ -146,4 +154,9 @@ func (c *context) oneBufferSize() int {
 func (c *context) maxBufferSize() int {
 	// The number of underlying buffers should be 2.
 	return c.oneBufferSize() * 2
+}
+
+type DeviceInfo struct {
+	Id   int
+	Name string
 }

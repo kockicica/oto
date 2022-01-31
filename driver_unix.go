@@ -90,6 +90,10 @@ func newContext(sampleRate, channelNum, bitDepthInBytes int) (*context, chan str
 	return c, ready, nil
 }
 
+func newContextWithDevice(sampleRate int, channelNum int, bitDepthInBytes int, deviceId int) (*context, chan struct{}, error) {
+	return newContext(sampleRate, channelNum, bitDepthInBytes)
+}
+
 func (c *context) alsaPcmHwParams(sampleRate, channelNum int, bufferSize, periodSize *C.snd_pcm_uframes_t) error {
 	var params *C.snd_pcm_hw_params_t
 	C.snd_pcm_hw_params_malloc(&params)
